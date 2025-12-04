@@ -16,15 +16,19 @@ pipeline {
 
         stage('Clean') {
             steps {
-                sh 'mvn clean'
+                dir('backend') {
+                    sh 'mvn clean'
+                }
             }
         }
 
         stage('Code Quality') {
             steps {
                 withSonarQubeEnv(SONARQUBE) {
-                    sh 'mvn clean package -DskipTests=true'
-                    sh 'mvn sonar:sonar'
+                    dir('backend') {
+                        sh 'mvn clean package -DskipTests=true'
+                        sh 'mvn sonar:sonar'
+                    }
                 }
             }
         }
@@ -42,7 +46,9 @@ pipeline {
 
         stage('Build Package') {
             steps {
-                sh 'mvn clean package -DskipTests=true'
+                dir('backend') {
+                    sh 'mvn clean package -DskipTests=true'
+                }
             }
         }
 
@@ -52,7 +58,9 @@ pipeline {
                 sudo mkdir -p /var/log/app
                 sudo chown -R jenkins:jenkins /var/log/app
                 sudo chmod 777 /var/log/app
-                sudo cp target/${JAR_NAME} ${WORKSPACE}/${JAR_NAME}
+                '''
+                sh '''
+                sudo cp backend/target/${JAR_NAME} ${WORKSPACE}/${JAR_NAME}
                 sudo chmod 755 ${WORKSPACE}/${JAR_NAME}
                 '''
             }
@@ -64,7 +72,7 @@ pipeline {
                 PID=$(pgrep -f datastore-0.0.7.jar || true)
                 if [ -n "$PID" ]; then
                     echo "Stopping existing application with PID: $PID"
-                  sudo kill -9 $PID
+                    sudo kill -9 $PID
                 else
                     echo "No existing application running"
                 fi
